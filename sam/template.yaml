@@ -1,0 +1,285 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Employee Function
+
+  Functions supporting the Employee Domain
+
+##########################################################################
+#  Parameters & Globals                                                  #
+##########################################################################
+
+Globals:
+  Function:
+    Timeout: 5
+
+Parameters:
+  StageName:
+    Type: String
+    Description: Stage name
+    Default: main
+  Region:
+    Type: String
+    Description: AWS Region Name
+    Default: us-west-2
+
+
+Resources:
+
+  ########################################################################
+  #  API Gateway Role for Lambda Access                                    #
+  ##########################################################################
+
+  APIGatewayAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: APIGatewayAccessRole
+      Description: "Allows API Gateway access to services and resources."
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: [ 'sts:AssumeRole' ]
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+          - Action: [ 'sts:AssumeRole' ]
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      Policies:
+        - PolicyName: lambda-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - 'lambda:InvokeFunction'
+                Effect: Allow
+                Resource: '*'
+
+
+  ##########################################################################
+  #  API Configuration                                                #
+  ##########################################################################
+
+  EmployeeApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref StageName
+      Name: Employee API
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: Employee
+          version: "1"
+
+        paths:
+          /employee:
+            post:
+              responses:
+                "200":
+                  description: OK
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                credentials:
+                  Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/APIGatewayAccessRole
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EmployeePostFunction.Arn}/invocations
+          /employee/{id}:
+            get:
+              responses:
+                "200":
+                  description: OK
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                credentials:
+                  Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/APIGatewayAccessRole
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EmployeeGetByIdFunction.Arn}/invocations
+            delete:
+              responses:
+                "200":
+                  description: OK
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                credentials:
+                  Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/APIGatewayAccessRole
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EmployeeDeleteByIdFunction.Arn}/invocations
+            put:
+              responses:
+                "200":
+                  description: OK
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                credentials:
+                  Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/APIGatewayAccessRole
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EmployeePutByIdFunction.Arn}/invocations
+
+
+
+  ##########################################################################
+  #  Lambda Functions                                                #
+  ##########################################################################
+  EmployeePostFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: employee-post-function
+      CodeUri: employee-post/
+      Handler: employee-post
+      Runtime: go1.x
+      Environment:
+        Variables:
+          LOG_LEVEL: debug
+          REGION: !Ref Region
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmployeeTable
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'logs:*'
+              Resource: 'arn:aws:logs:*:*:*'
+
+  EmployeeGetByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: employee-get-by-id-function
+      CodeUri: employee-get-by-id/
+      Handler: employee-get-by-id
+      Runtime: go1.x
+      Environment:
+        Variables:
+          LOG_LEVEL: debug
+          REGION: !Ref Region
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmployeeTable
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'logs:*'
+              Resource: 'arn:aws:logs:*:*:*'
+
+  EmployeeDeleteByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: employee-delete-by-id-function
+      CodeUri: employee-delete-by-id/
+      Handler: employee-delete-by-id
+      Runtime: go1.x
+      Environment:
+        Variables:
+          LOG_LEVEL: debug
+          REGION: !Ref Region
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmployeeTable
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'logs:*'
+              Resource: 'arn:aws:logs:*:*:*'
+
+  EmployeePutByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: employee-put-by-id-function
+      CodeUri: employee-put-by-id/
+      Handler: employee-put-by-id
+      Runtime: go1.x
+      Environment:
+        Variables:
+          LOG_LEVEL: debug
+          REGION: !Ref Region
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmployeeTable
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'logs:*'
+              Resource: 'arn:aws:logs:*:*:*'
+
+  ##########################################################################
+  #  Dynamo DB tables                                                      #
+  ##########################################################################
+
+ # Create table with KMS key. Avoid any charges, I haven't included here
+  EmployeeTable:
+    Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    Properties:
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      TableName: Employee
+
+  ##########################################################################
+  #  LOG Groups                                                            #
+  ##########################################################################
+
+  EmployeePostFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub  /aws/lambda/${EmployeePostFunction}
+      RetentionInDays: 1
+
+  EmployeeDeleteByIdFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub  /aws/lambda/${EmployeeDeleteByIdFunction}
+      RetentionInDays: 1
+
+  EmployeeGetByIdFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub  /aws/lambda/${EmployeeGetByIdFunction}
+      RetentionInDays: 1
+
+  EmployeePutByIdFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub  /aws/lambda/${EmployeePutByIdFunction}
+      RetentionInDays: 1
+
+  ##########################################################################
+  #  OUTPUT                                                                #
+  ##########################################################################
+Outputs:
+  APIEndpoint:
+    Description: endpoint of EmployeeApi
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Ref: EmployeeApi
+          - .execute-api.
+          - !Ref "AWS::Region"
+          - .amazonaws.com/
+    Export:
+      Name: EmployeeAPIEndpoint

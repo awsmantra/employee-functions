@@ -1,0 +1,27 @@
+*.js
+!jest.config.js
+*.d.ts
+*node_modules*
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+cdk.local.out
+
+# sonar
+.scannerwork
+
+# other
+.DS_STORE
+
+# idea
+.idea
+
+lib/*.d.ts
+lib/*.js
+
+bin/*.d.ts
+bin/*.js
+
+src/**/**/*.d.ts
+src/**/**/*.js

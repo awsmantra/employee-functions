@@ -1,0 +1,13 @@
+!jest.config.js
+*.d.ts
+infra/node_modules
+*node_modules*
+# CDK asset staging directory
+infra/.cdk.staging
+infra/cdk.out
+src/pkg*
+
+fake-data/node_modules/*
+
+.aws-sam
+.idea
